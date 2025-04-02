@@ -35,28 +35,12 @@
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue';
+import { reactive } from 'vue';
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue';
 import { useRouter } from 'vue-router';
 import { userLogin } from '../api/user';
 import { message } from 'ant-design-vue';
-import { initDatabase } from '../api/common';
 
-// 初始化数据库（只会在生产环境中初始化）
-onMounted(() => {
-    if (form.email == '1655064994@qq.com') {
-        message.loading('正在初始化数据...', 2.5).then(() => {
-            initDatabase().then((res) => {
-                if (res.data.code == 0) {
-                    message.success('初始化成功！', 2)
-                }
-                if (res.data.code == 10) {
-                    message.error('初始化失败！')
-                }
-            })
-        })
-    }
-})
 
 const router = useRouter()
 
@@ -82,7 +66,7 @@ const onLogin = () => {
         if (res.data.code == 200) {
             localStorage.setItem('uid', res.data.info.uid)
             localStorage.setItem('token', res.data.info.token)
-            router.push("/home")
+            router.push("/welcome")
         }
         if (res.data.code == 10002) {
             message.error(res.data.msg);

@@ -36,14 +36,6 @@ export function userForgotPass(param) {
 	})
 }
 
-// 注销账号
-export function userDelete(param) {
-    return request({
-		url: '/user/delete',
-		method: 'delete',
-		data: param,
-	})
-}
 
 // 获取用户信息
 export function getUserInfo(param) {

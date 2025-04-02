@@ -668,7 +668,15 @@ const onSend = () => {
             attachment: mail.attachment
         }
         sendMailToCustomer(param).then((res) => {
-            if (res.data.code == 0) {
+            // 处理无权限情况
+            if (res.data.code == 403) {
+                message.warning({
+                    content: res.data.info || '您没有权限使用该功能，请订阅专业版',
+                    duration: 3,
+                });
+                return;
+            }
+            if (res.data.code == 200) {
                 message.success("邮件已发送")
                 visibleMail.value = false
             }

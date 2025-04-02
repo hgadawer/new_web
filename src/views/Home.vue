@@ -65,8 +65,8 @@
                         <a-avatar @click="onUserAvatar" class="avatar" :size="28">U</a-avatar>
                         <template #overlay>
                             <a-menu style="width: 120px;">
-                                <a-menu-item @click="visible = true">
-                                    <ExclamationCircleOutlined /> 注销账号
+                                <a-menu-item @click="showUserInfo">
+                                    <UserOutlined /> 个人信息
                                 </a-menu-item>
                                 <a-menu-item @click="onLogout">
                                     <LogoutOutlined /> 退出登录
@@ -75,21 +75,24 @@
                         </template>
                     </a-dropdown>
                 </div>
-                <!-- 注销账号弹出框 -->
-                <a-modal v-model:visible="visible" title="注销账号" @ok="onConfirm" @cancel="onCancel" cancelText="取消"
-                    okText="注销" width="400px" :centered="true">
-                    <a-alert message="账号注销后，会清空账号相关的所有数据。" type="warning" show-icon /><br />
-                    <a-form :model="user" layout="vertical" @finish="onSubmit" :rules="rules">
-                        <a-form-item name="email">
-                            <a-input v-model:value="user.email" placeholder="邮箱" disabled />
-                        </a-form-item>
-                        <a-form-item name="code">
-                            <a-input v-model:value="user.code" style="width: 55%;" placeholder="验证码" />
-                            <a-button @click="onGetCode" style="width: 40%;float: right;" :loading="loading"
-                                :disabled="disabled">
-                                {{ buttonText }}</a-button>
-                        </a-form-item>
-                    </a-form>
+                <!-- 用户信息模态框 -->
+                <a-modal v-model:visible="visible" title="个人信息" @cancel="onCancel" cancelText="关闭"
+                    :footer="null" width="400px" :centered="true">
+                    <div style="padding: 10px;">
+                        <a-descriptions :column="1" bordered>
+                            <a-descriptions-item label="用户名">
+                                {{ user.name }}
+                            </a-descriptions-item>
+                            <a-descriptions-item label="邮箱">
+                                {{ user.email }}
+                            </a-descriptions-item>
+                            <a-descriptions-item label="账号版本">
+                                <a-tag :color="user.verison === 1 ? 'blue' : 'green'">
+                                    {{ user.verison === 1 ? '基础版' : '专业版' }}
+                                </a-tag>
+                            </a-descriptions-item>
+                        </a-descriptions>
+                    </div>
                 </a-modal>
             </a-layout-header>
             <a-layout-content :style="{ margin: '10px', background: '#fff', overflow: 'initial', borderRadius: '5px' }">
@@ -108,10 +111,10 @@ import { reactive, ref, onBeforeMount } from 'vue';
 import { useRouter } from 'vue-router'
 import { useStore } from '../store/index';
 import { message } from 'ant-design-vue';
-import { getUserInfo, getVerifyCode, userDelete } from '../api/user';
+import { getUserInfo, getVerifyCode } from '../api/user';
 import { updateNotice, getNoticeCount, getNoticeList, deleteNotice } from '../api/notice';
-import { DashboardOutlined, SmileOutlined, MehOutlined, ShoppingOutlined, ProfileOutlined, CrownOutlined } from '@ant-design/icons-vue';
-import { QuestionCircleFilled, BellFilled, ExclamationCircleOutlined, LogoutOutlined } from '@ant-design/icons-vue';
+import { DashboardOutlined, SmileOutlined, MehOutlined, ShoppingOutlined, ProfileOutlined, CrownOutlined, ContainerFilled } from '@ant-design/icons-vue';
+import { QuestionCircleFilled, BellFilled, UserOutlined, LogoutOutlined } from '@ant-design/icons-vue';
 import moment from 'moment'
 
 // 菜单选项
@@ -126,8 +129,13 @@ const menuItem = reactive([{
     icon: SmileOutlined,
     name: "客户"
 }, {
-    key: "contract",
-    to: "/contract",
+    key: "contact",
+    to: "/contact",
+    icon:ContainerFilled,
+    name:"合同"
+}, {
+    key: "business",
+    to: "/business",
     icon: MehOutlined,
     name: "业务"
 }, {
@@ -181,8 +189,7 @@ const user = reactive({
     name: undefined,
     email: undefined,
     verison: undefined,
-    code: undefined,
-    versionText: undefined
+    created: undefined
 })
 
 const visible = ref(false)
@@ -193,26 +200,30 @@ const buttonText = ref('获取验证码')
 
 // 初始化数据
 onBeforeMount(() => {
-    store.selectedKeys = 'dashboard'
-    router.push('dashboard')
+    store.selectedKeys = 'welcome'
+    router.push('welcome')
     noticeCount()
 })
 
 // 点击用户头像
 const onUserAvatar = () => {
     getUserInfo().then((res) => {
-        if (res.data.code == 0) {
-            user.name = res.data.data.name
-            user.email = res.data.data.email
-            user.version = res.data.data.version
+        if (res.data.code == 200) {
+            user.name = res.data.info.name
+            user.email = res.data.info.email
+            user.verison = res.data.info.version
+            user.created = res.data.info.created ? moment(res.data.info.created).format('YYYY-MM-DD HH:mm:ss') : '未知'
         }
     })
 }
 
-// 跳转到项目文档
-const toDocs = () => {
-    window.open("https://docs.zocrm.cloud")
+// 显示用户信息
+const showUserInfo = () => {
+    onUserAvatar(); // 获取最新用户信息
+    visible.value = true;
 }
+
+
 
 // 点击获取验证码
 const onGetCode = () => {
@@ -244,7 +255,7 @@ const onConfirm = () => {
         code: user.code
     }
     userDelete(param).then((res) => {
-        if (res.data.code == 0) {
+        if (res.data.code == 200) {
             router.push('/')
             message.success('账号已注销')
         }
@@ -252,21 +263,24 @@ const onConfirm = () => {
 }
 
 // 日期格式化
-const formatDate = (timeStamp) => {
-    let now = (Date.parse(new Date())) / 1000
+const formatDate = (dateStr) => {
+    // 将日期字符串转换为时间戳
+    const timeStamp = moment(dateStr).unix()
+    const now = moment().unix()
+    
     if (now - timeStamp < 60) {
         return "刚刚"
     }
-    if ((new Date().getDate()) == (new Date(timeStamp * 1000).getDate())) {
-        return "今天 " + moment(timeStamp * 1000).format('HH:mm')
+    if (moment().format('YYYY-MM-DD') === moment(dateStr).format('YYYY-MM-DD')) {
+        return "今天 " + moment(dateStr).format('HH:mm')
     }
-    return moment(timeStamp * 1000).format('YYYY-MM-DD')
+    return moment(dateStr).format('YYYY-MM-DD')
 }
 
 // 点击读取通知
 const onReadNotice = (id) => {
     updateNotice({ id: id }).then((res) => {
-        if (res.data.code == 0) {
+        if (res.data.code == 200) {
             onNotice()
             noticeCount()
         }
@@ -276,8 +290,8 @@ const onReadNotice = (id) => {
 // 获取通知数量
 const noticeCount = () => {
     getNoticeCount().then((res) => {
-        if (res.data.code == 0) {
-            data.noticeCount = res.data.data.count
+        if (res.data.code == 200) {
+            data.noticeCount = res.data.info.count
         }
     })
 }
@@ -285,8 +299,8 @@ const noticeCount = () => {
 // 获取通知列表
 const onNotice = () => {
     getNoticeList().then((res) => {
-        if (res.data.code == 0) {
-            data.noticeList = res.data.data
+        if (res.data.code == 200) {
+            data.noticeList = res.data.info
         }
     })
 }
@@ -298,9 +312,10 @@ const onDeleteNotice = () => {
         ids[index] = data.noticeList[index].id
     }
     deleteNotice({ ids: ids }).then((res) => {
-        if (res.data.code == 0) {
-            data.noticeList = res.data.data
+        if (res.data.code == 200) {
+            data.noticeList = res.data.info
             onNotice()
+            noticeCount()
         }
     })
 }

@@ -71,7 +71,7 @@ const onSubmit = () => {
             password: formData.password2,
         }
         userForgotPass(param).then((res) => {
-            if (res.data.code == 0) {
+            if (res.data.code == 200) {
                 message.success('密码已重置')
                 router.push("/login")
             }
@@ -93,12 +93,12 @@ const onGetCode = () => {
         email: formData.email
     }
     getVerifyCode(param).then((res) => {
-        if (res.data.code == 0) {
+        if (res.data.code == 200) {
             loading.value = false
             disabled.value = true
             buttonText.value = '验证码已发送'
         }
-        if (res.data.code == 10004) {
+        if (res.data.code == 10005) {
             loading.value = false
             message.error('验证码发送失败')
         }

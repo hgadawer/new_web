@@ -2,7 +2,7 @@
     <div :style="{ padding: '0 20px 12px 20px' }">
         <a-tabs v-model:activeKey="activeKey">
             <a-tab-pane key="1" tab="邮件服务配置">
-                <a-card size="small" title="配置STMP服务" :headStyle="{ padding: '0 0' }" :bodyStyle="{ padding: '10px 0' }"
+                <a-card size="small" title="配置SMTP服务" :headStyle="{ padding: '0 0' }" :bodyStyle="{ padding: '10px 0' }"
                     :bordered="false">
                     <template #extra><a-switch v-model:checked="mailConfig.status" :checkedValue="1" :unCheckedValue="2"
                             @change="onSwitch" /></template>
@@ -11,7 +11,7 @@
                         @finish="onSave">
                         <a-row :gutter="50">
                             <a-col :span="12">
-                                <a-form-item label="STMP服务器" name="stmp">
+                                <a-form-item label="SMTP服务器" name="stmp">
                                     <a-input v-model:value="mailConfig.stmp" placeholder="请输入域名">
                                         <template #suffix>
                                             <a-tooltip title="如 smtp.qq.com">
@@ -105,7 +105,9 @@ import { InfoCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons
 import Spot from '../components/Spot.vue';
 import { saveMailConfig, deleteMailConfig, updateMailConfigStmpStatus, getMailConfig, checkMailConfig } from '../api/config';
 import { message, Modal } from 'ant-design-vue';
-
+import { useRouter } from 'vue-router'
+// 获取路由实例
+const router = useRouter();
 // 初始化
 onBeforeMount(() => {
     getMailConfigInfo()
@@ -149,8 +151,8 @@ const rules = {
 // 保存邮件服务配置
 const onSave = () => {
     saveMailConfig(mailConfig).then((res) => {
-        if (res.data.code == 0) {
-            setData(res.data.data)
+        if (res.data.code == 200) {
+            setData(res.data.info)
             message.success("保存成功")
             checkConfig()
         } else {
@@ -168,8 +170,8 @@ const delConfig = () => {
         cancelText: '取消',
         okText: '确定',
         onOk() {
-            deleteMailConfig({ id: mailConfig.id }).then((res) => {
-                if (res.data.code == 0) {
+            deleteMailConfig(mailConfig.id ).then((res) => {
+                if (res.data.code == 200) {
                     message.success("删除成功")
                     reset()
                 } else {
@@ -189,7 +191,7 @@ const onSwitch = () => {
         id: mailConfig.id,
         status: mailConfig.status
     }).then((res) => {
-        if (res.data.code == 0) {
+        if (res.data.code == 200) {
             if (mailConfig.status == 1) {
                 message.success("服务已开启")
             } else {
@@ -206,8 +208,17 @@ const onSwitch = () => {
 // 获取邮件服务配置
 const getMailConfigInfo = () => {
     getMailConfig().then((res) => {
-        if (res.data.code == 0) {
-            setData(res.data.data)
+                // 处理无权限情况
+        if (res.data.code == 403) {
+            message.warning({
+                content: res.data.info || '您没有权限使用该功能，请订阅专业版',
+                duration: 3,
+            });
+            router.push('/subscribe');
+            return;
+        }
+        if (res.data.code == 200) {
+            setData(res.data.info)
             checkConfig()
         }
         if (res.data.code == 50004) {
@@ -221,7 +232,16 @@ const getMailConfigInfo = () => {
 const checkConfig = () => {
     usability.value = 1
     checkMailConfig().then((res) => {
-        if (res.data.code == 0) {
+        // 处理无权限情况
+        if (res.data.code == 403) {
+            message.warning({
+                content: res.data.info || '您没有权限使用该功能，请订阅专业版',
+                duration: 3,
+            });
+            router.push('/subscribe');
+            return;
+        }
+        if (res.data.code == 200) {
             usability.value = 2
         } else {
             usability.value = 3

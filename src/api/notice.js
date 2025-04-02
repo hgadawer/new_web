@@ -1,6 +1,6 @@
 import request from '../axios/index'
 
-// 获取通知列表
+// 更新通知状态
 export function updateNotice(param) {
     return request({
 		url: '/notice/update',
@@ -9,7 +9,7 @@ export function updateNotice(param) {
 	})
 }
 
-// 获取通知列表
+// 获取通知数量
 export function getNoticeCount(param) {
     return request({
 		url: '/notice/count',

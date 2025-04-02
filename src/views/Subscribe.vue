@@ -41,12 +41,10 @@
                     <a-button v-if="version == 1" type="primary" size="large" class="btn-buy" @click="onBuy"
                         shape="round" :disabled="disabled">立即购买</a-button>
                     <a-button v-if="version == 2" type="primary" size="large" class="btn-buy" shape="round"
-                        @click="onBuy">
-                        立即续费
+                        >
+                        当前为专业版，无需再次支付
                     </a-button><br />
-                    <a-button v-if="version == 2" type="link" size="large" class="btn-buy" shape="round">专业版于 {{
-                        expired
-                    }} 到期</a-button>
+                    <!-- 移除到期时间显示 -->
                 </a-card>
             </a-col>
         </a-row>
@@ -59,14 +57,9 @@
                 <a-form ref="subscribeFormRef" :model="subscribe" name="subscribe" :rules="rules">
                     <a-row :gutter="16">
                         <a-col :span="24">
-                            <a-form-item label="订阅时长" name="duration">
-                                <a-select v-model:value="subscribe.duration" placeholder="请选择">
-                                    <a-select-option :value="30">1个月</a-select-option>
-                                    <a-select-option :value="90">3个月</a-select-option>
-                                    <a-select-option :value="180">6个月</a-select-option>
-                                    <a-select-option :value="365">一年</a-select-option>
-                                    <a-select-option :value="730">两年</a-select-option>
-                                </a-select>
+                            <!-- 移除订阅时长选择，改为一次性付费 -->
+                            <a-form-item label="专业版特权" name="features">
+                                <div>永久使用专业版全部功能</div>
                             </a-form-item>
                             <a-form-item label="支付方式" name="payMode">
                                 <a-radio-group v-model:value="subscribe.payMode">
@@ -75,10 +68,7 @@
                                 </a-radio-group>
                             </a-form-item>
                             <a-form-item label="合计支付" name="payment">
-                                <span style="color: #ff991f;font-size: 18px;font-weight: 550;">￥{{
-                                    subscribe.duration *
-                                        0.6
-                                }}</span>
+                                <span style="color: #ff991f;font-size: 18px;font-weight: 550;">￥299</span>
                             </a-form-item>
                         </a-col>
                     </a-row>
@@ -96,24 +86,18 @@ import moment from 'moment';
 import { message, Modal } from 'ant-design-vue';
 
 const version = ref(0)
-const expired = ref(undefined)
+// 移除过期时间变量
 const visible = ref(false)
 const disabled = ref(false)
 const activedClass = reactive(['card', 'card', 'card'])
 
 const subscribe = reactive({
-    duration: 30,
     payMode: 1,
-    payment: 0.00
+    payment: 299.00  // 固定价格
 })
 
 // 表单校验
 const rules = {
-    duration: [{
-        required: true,
-        message: '请选择订阅时长',
-        trigger: 'blur',
-    }],
     payMode: [{
         required: true,
         message: '请选择支付方式',
@@ -141,42 +125,30 @@ const onPay = () => {
         message.error('暂不支持微信支付！')
         return
     }
-    subscribeFormRef.value.validateFields().then(() => {
-        let param = {
-            duration: subscribe.duration
-        }
-        subscribePay(param).then((res) => {
-            if (res.data.code == 0) {
+        subscribePay().then((res) => {
+            if (res.data.code == 200) {
+                // 模拟支付成功
+                message.success('支付成功！')
                 visible.value = false
-                payResult.value = true
-                Modal.info({
-                    title: '正在跳转到支付宝支付页面...',
-                    centered: true,
-                    okText: '返回',
-                    onOk() {
-                        window.stop()
-                    },
-                });
-                window.open(res.data.data.payUrl, '_self')
+                // 刷新订阅信息
+                subscribeInfo()
             }
         })
-    })
 }
 
 // 获取用户订阅信息
 const subscribeInfo = () => {
     getSubscribeInfo().then((res) => {
-        if (res.data.code == 0) {
-            version.value = res.data.data.version
-            expired.value = moment(res.data.data.expired * 1000).format('YYYY-MM-DD')
-            if (res.data.data.version !== 1) {
+        if (res.data.code == 200) {
+            version.value = res.data.info.version
+            if (res.data.info.version !== 1) {
                 disabled.value = true
             }
-            if (res.data.data.version == 1) {
+            if (res.data.info.version == 1) {
                 activedClass[0] = 'selected-free-card'
             }
-            if (res.data.data.version == 2 || res.data.data.version == 3) {
-                activedClass[res.data.data.version - 1] = 'selected-card'
+            if (res.data.info.version == 2 || res.data.info.version == 3) {
+                activedClass[res.data.info.version - 1] = 'selected-card'
             }
         }
     })

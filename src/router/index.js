@@ -14,7 +14,8 @@ import Product from '../views/Product.vue'
 import Config from '../views/Config.vue'
 import Subscribe from '../views/Subscribe.vue'
 import Result from '../views/Result.vue'
-
+import Contract from '../views/Contract.vue' // 导入合同组件
+import Welcome from '../views/Welcome.vue'
 const routes = [
   {
     path: '/',
@@ -41,6 +42,11 @@ const routes = [
     redirect: '/dashboard',
     children: [
       {
+        path: '/welcome',
+        name: 'welcome',
+        component: Welcome,
+      },
+      {
         path: '/dashboard',
         name: 'dashboard',
         component: Dashboard,
@@ -51,9 +57,9 @@ const routes = [
         component: Customer,
       },
       {
-        path: '/contract',  // 路由路径保持不变
-        name: 'contract',
-        component: Business,  // 修改处：使用 Business 组件代替 Contract 组件
+        path: '/business',  // 路由路径保持不变
+        name: 'business',
+        component: Business,  
       },
       {
         path: '/product',
@@ -74,6 +80,12 @@ const routes = [
         path: '/result',
         name: 'result',
         component: Result,
+      },
+      // 添加合同模块作为子路由
+      {
+        path: '/contact',
+        name: 'contact',
+        component: Contract,
       }
     ],
   },
@@ -82,6 +94,7 @@ const routes = [
     name: 'error',
     component: Error,
   },
+  // 删除独立的合同模块路由
 ]
 
 const router = createRouter({
